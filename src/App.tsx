@@ -34,7 +34,13 @@ export const App = () => {
     ]);
   };
 
-  const todosId: number = Math.max(...todos.map(el => el.id));
+  const todosId = () => {
+    if (todos.length === 0) {
+      return 0;
+    }
+
+    return Math.max(...todos.map(el => el.id)) + 1;
+  };
 
   const clearForm = () => {
     setTitle('');
@@ -52,7 +58,7 @@ export const App = () => {
     }
 
     onAdd({
-      id: todosId + 1,
+      id: todosId(),
       title,
       completed: false,
       userId: valueSelect,
@@ -77,7 +83,7 @@ export const App = () => {
               placeholder="Enter a title"
               onChange={event => {
                 setTitle(event.target.value);
-                setIsTitleEmpty(false);
+                setIsTitleEmpty(title === '' ? true : false);
               }}
             />
             {isTitleEmpty && submitted && (
@@ -95,7 +101,7 @@ export const App = () => {
               value={valueSelect}
               onChange={event => {
                 setValueSelect(+event.target.value);
-                setIsSelectEmpty(false);
+                setIsSelectEmpty(valueSelect === 0 ? true : false);
               }}
             >
               <option value="0" disabled>

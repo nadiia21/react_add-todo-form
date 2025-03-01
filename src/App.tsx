@@ -1,67 +1,62 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 import './App.scss';
 import { TodoList } from './components/TodoList';
-import { Todo } from './types/Todo';
 
 import usersFromServer from './api/users';
 import todosFromServer from './api/todos';
+import { Todo } from './types/Todo';
 
-function getUserById(userId: number) {
+const findUsers = (userId: number) => {
   return usersFromServer.find(user => user.id === userId) || null;
-}
+};
 
-const initialTodos = todosFromServer.map(todo => ({
+const currentTodos = todosFromServer.map(todo => ({
   ...todo,
-  user: getUserById(todo.userId),
+  user: findUsers(todo.userId),
 }));
 
 export const App = () => {
-  const [todos, setTodos] = useState(initialTodos);
-  const [valueSelect, setValueSelect] = useState(0);
+  const [selectedUser, setSelectedUser] = useState(0);
   const [title, setTitle] = useState('');
-  const [isTitleEmpty, setIsTitleEmpty] = useState(true);
-  const [isSelectEmpty, setIsSelectEmpty] = useState(true);
-  const [submitted, setSubmitted] = useState(false);
+  const [titleError, setTitleError] = useState(true);
+  const [userError, setUserError] = useState(true);
+  const [submit, setSubmit] = useState(false);
+  const [todos, setTodos] = useState<Todo[]>(currentTodos);
 
-  const onAdd = (newTodo: Omit<Todo, 'user'>) => {
-    setTodos(prevTodos => [
-      ...prevTodos,
-      {
-        ...newTodo,
-        user: getUserById(newTodo.userId),
-      },
-    ]);
+  const onAdd = (todo: Omit<Todo, 'user'>): void => {
+    const newTodo = { ...todo, user: findUsers(todo.userId) };
+
+    setTodos(prevTodo => [...prevTodo, newTodo]);
   };
 
-  const todosId = () => {
+  const newId = () => {
     if (todos.length === 0) {
       return 0;
     }
 
-    return Math.max(...todos.map(el => el.id)) + 1;
+    return Math.max(...todos.map(todo => todo.id)) + 1;
   };
 
   const clearForm = () => {
     setTitle('');
-    setValueSelect(0);
-    setSubmitted(false);
+    setSelectedUser(0);
   };
 
-  const addTodo = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleChange = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-    setSubmitted(true);
+    setSubmit(true);
 
-    if (isTitleEmpty || isSelectEmpty) {
+    if (!title || !selectedUser) {
       return;
     }
 
     onAdd({
-      id: todosId(),
       title,
       completed: false,
-      userId: valueSelect,
+      userId: selectedUser,
+      id: newId(),
     });
 
     clearForm();
@@ -71,37 +66,37 @@ export const App = () => {
     <div className="App">
       <h1>Add todo form</h1>
 
-      <form action="/api/todos" method="POST" onSubmit={addTodo}>
+      <form action="/api/todos" method="POST" onSubmit={handleChange}>
         <div className="field">
-          <label htmlFor="titleTodo">
+          <label htmlFor="title">
             Title:{' '}
             <input
-              id="titleTodo"
+              id="title"
               value={title}
               type="text"
               data-cy="titleInput"
               placeholder="Enter a title"
-              onChange={event => {
-                setTitle(event.target.value);
-                setIsTitleEmpty(title === '' ? true : false);
+              onChange={e => {
+                setTitle(e.target.value);
+                setTitleError(e.target.value === '' ? true : false);
               }}
             />
-            {isTitleEmpty && submitted && (
+            {submit && titleError && (
               <span className="error">Please enter a title</span>
             )}
           </label>
         </div>
 
         <div className="field">
-          <label htmlFor="userTodo">
+          <label htmlFor="user">
             User:{' '}
             <select
-              id="userTodo"
+              id="user"
               data-cy="userSelect"
-              value={valueSelect}
-              onChange={event => {
-                setValueSelect(+event.target.value);
-                setIsSelectEmpty(valueSelect === 0 ? true : false);
+              value={selectedUser}
+              onChange={e => {
+                setSelectedUser(+e.target.value);
+                setUserError(+e.target.value === 0 ? true : false);
               }}
             >
               <option value="0" disabled>
@@ -113,7 +108,7 @@ export const App = () => {
                 </option>
               ))}
             </select>
-            {isSelectEmpty && submitted && (
+            {submit && userError && (
               <span className="error">Please choose a user</span>
             )}
           </label>
@@ -123,6 +118,7 @@ export const App = () => {
           Add
         </button>
       </form>
+
       <TodoList todos={todos} />
     </div>
   );
